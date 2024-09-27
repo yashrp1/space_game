@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:space_game/player.dart';
 
 
-class SpaceShooterGame extends FlameGame with PanDetector {
+class SpaceShooterGame extends FlameGame with PanDetector, WidgetsBindingObserver {
   late Player player;
   late ObstacleManager obstacleManager;
   late AudioPlayer backgroundMusicPlayer;
@@ -31,6 +31,7 @@ class SpaceShooterGame extends FlameGame with PanDetector {
     backgroundMusicPlayer = AudioPlayer();
     collisionSoundPlayer = AudioPlayer();
     await preloadAudio();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   Future<void> preloadAudio() async {
@@ -113,11 +114,25 @@ class SpaceShooterGame extends FlameGame with PanDetector {
     textPainter.paint(canvas, const Offset(13, 20));
   }
 
-  @override
+    @override
   void onRemove() {
+    // Dispose audio players to prevent memory leaks
     backgroundMusicPlayer.dispose();
     collisionSoundPlayer.dispose();
+    // Remove observer when the game is removed
+    WidgetsBinding.instance.removeObserver(this);
     super.onRemove();
+  }
+
+  // Detect app lifecycle changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      pauseGame(); // Pause game and music when app is in background
+    } else if (state == AppLifecycleState.resumed) {
+      resumeGame(); // Resume game and music when app comes to foreground
+    }
+    super.didChangeAppLifecycleState(state);
   }
 
   @override
